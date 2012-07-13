@@ -1,0 +1,79 @@
+= OpenRubyRMBot
+
+The bot that hangs around in #OpenRubyRMK on freenode.net (or
+everywhere you configure him to hang around). It’s default
+configuration is a bit OpenRubyRMK-specific (as that is the primary
+purpose he has been developed for), but with a little bit of work he
+can be made to cooperate just fine with developer teams from other
+projects. It is inteded to only run on *nixish systems, but if you
+want to put some effort into the code, you’ll probably be able to run
+it on other platforms.
+
+OpenRubyRMBot features both a readable and well-documented
+configuration file and a plugin system allowing you to add/remove
+functionality you (don’t) desire. Under the hood it uses the
+{em-irc lirbrary}[https://github.com/jch/em-irc], which is based on
+EventMachine[http://rubyeventmachine.com] and therefore should scale
+well.
+
+It is able to both parse all public messages posted into a channel and
+to process private messages directly targetted at the bot. The former
+can cause a so-called "trigger" to be activated, making the bot taking
+action and posting something (or doing something else you define), the
+latter are understand as "commands" that are intended to make the bot
+acting in some way.
+
+== Installation
+
+TODO
+
+== Weblinks
+
+TODO
+
+== Usage
+
+To start the bot:
+
+  $ bin/open_ruby_rmbot
+
+To log to standard output (debugging mode automatically activated):
+
+  $ bin/open_ruby_rmbot -d
+
+To configure:
+
+  $ $EDITOR config/open_ruby_rmbot.conf
+
+== Plugins
+
+Plugins usually come as a single Ruby file you have to place inside
+the plugins/ directory of your OpenRubyRMBot installation. In order to
+enable the plugin after installation, open up config/plugins.conf and
+add the plugin’s name (should be mentioned in the plugin’s
+documentation) to the bottom of that file on its own line.
+
+If you want to actually write a plugin yourself, have a look at the
+OpenRubyRMBot::IRCBot class which contains a short tutorial on how to
+write a plugin adding a simple echo functionality to OpenRubyRMBot.
+
+== License
+
+OpenRubyRMBot is an IRC bot for project interation.
+Copyright © 2012 The OpenRubyRMK Team
+
+See the file AUTHORS for an exhaustive list of people who have
+contributed to this program.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
