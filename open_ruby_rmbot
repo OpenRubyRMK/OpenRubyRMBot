@@ -51,7 +51,7 @@ FIFO_PATH = "%s/tmp/data"
 ########################################
 
 # The version number.
-ORRBOT_VERSION = "0.0.1-dev"
+ORRBOT_VERSION = "0.0.1"
 
 # The directory this file resides in.
 INSTALL_DIR = Pathname.new(__FILE__).dirname.expand_path
