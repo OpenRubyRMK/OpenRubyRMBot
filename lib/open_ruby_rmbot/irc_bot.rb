@@ -249,6 +249,7 @@ class OpenRubyRMBot::IRCBot < EventMachine::IRC::Client
     on :join do |who, channel|
       @log.info("Successfully /join-ed #{@config[:channel]}")
       message(channel, "#{@config[:nickname]} is back again!")
+      channel_joined(channel)
     end
 
     # A message was posted.
@@ -289,6 +290,15 @@ class OpenRubyRMBot::IRCBot < EventMachine::IRC::Client
     #[to]   The target #channel or nick.
     #[msg]  The actual message.
     def parse_visible_message(from, to, msg)
+      # Do nothing
+    end
+
+    #As with #parse_visible_message, you can override this
+    #method in your plugin. Works the exact same way, but
+    #is called when OpenRubyRMBot joins a channel.
+    #==Parameter
+    #[channel] The channel the bot just joined to.
+    def channel_joined(channel)
       # Do nothing
     end
 
