@@ -109,6 +109,7 @@ bot = EventMachine::IRC::Client.new do
     # to the channel would fail badly, of course.
     @fifo_thread = Thread.new do
       File.mkfifo(@fifo.to_s) # Method from the mkfifo gem # TODO: Newer version should work with Pathname
+      File.chmod(0666, @fifo)
 
       File.open(@fifo, "r+") do |fifo| # Needs r+ for keeping the FIFO open after a process has completed writing (wait for other processes!)
         @logger.info("Opened FIFO (named pipe) at #{@fifo}.")
