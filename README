@@ -35,29 +35,18 @@ TODO
 
 == Usage
 
-To start the bot:
+To configure, edit the first section in the script:
 
-  $ bin/open_ruby_rmbot
+  $ $EDITOR open_ruby_rmbot
 
-To log to standard output (debugging mode automatically activated):
+To start in production mode:
 
-  $ bin/open_ruby_rmbot -d
+  $ rbx -X19 open_ruby_rmbot
 
-To configure:
+To start in debug mode (doesn’t fork, logs to standard output
+with log level DEBUG):
 
-  $ $EDITOR config/open_ruby_rmbot.conf
-
-== Plugins
-
-Plugins usually come as a single Ruby file you have to place inside
-the plugins/ directory of your OpenRubyRMBot installation. In order to
-enable the plugin after installation, open up config/plugins.conf and
-add the plugin’s name (should be mentioned in the plugin’s
-documentation) to the bottom of that file on its own line.
-
-If you want to actually write a plugin yourself, have a look at the
-OpenRubyRMBot::IRCBot class which contains a short tutorial on how to
-write a plugin adding a simple echo functionality to OpenRubyRMBot.
+  $ rbx -X19 open_ruby_rmbot -d
 
 == License
 
