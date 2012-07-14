@@ -2,6 +2,7 @@
 # -*- mode: ruby; coding: utf-8 -*-
 require "logger"
 require "pathname"
+require "mkfifo"
 require "em-irc"
 ########################################
 # Configuration
@@ -39,6 +40,12 @@ CHANNELS = %w[#TheORRBotTestchannel]
 # by the ticket number `num'.
 TICKET_URL = "http://devel.pegasus-alpha.eu/issues/%d"
 
+# Named pipe you can write everything to that
+# you want to show up in the IRC channel(s) the bot has
+# joined to. %s is replaced by the directory this file
+# resides in.
+FIFO_PATH = "%s/tmp/data"
+
 ########################################
 # Start of code
 ########################################
@@ -58,6 +65,7 @@ bot = EventMachine::IRC::Client.new do
 
   @logger = Logger.new(LOG_FILE % INSTALL_DIR.to_s, LOG_LEVEL)
   @pid_file = Pathname.new(PID_FILE % INSTALL_DIR.to_s)
+  @fifo = Pathname.new(FIFO_PATH % INSTALL_DIR.to_s)
 
   on :connect do
     # Notify the user that we are starting
@@ -80,6 +88,12 @@ bot = EventMachine::IRC::Client.new do
   end
 
   on :disconnect do
+    # Kill the FIFO thread and remove the named pipe
+    @fifo_thread.kill
+    File.delete(@fifo)
+    @logger.debug("Deleted FIFO.")
+
+    # Delete the PID file
     @pid_file.delete if @pid_file.file?
     @logger.debug("Deleted PID file.")
   end
@@ -87,7 +101,25 @@ bot = EventMachine::IRC::Client.new do
   on :nick do
     @logger.info("Nickname #{NICKNAME} granted by the network.")
     CHANNELS.each{|channel| join(channel)}
-  end
+
+    # Create a new thread for monitoring the FIFO. Everything inputted
+    # there is directly mirrored to the IRC channel(s). This can’t be
+    # done on :connect, as the network probably rejects the connection
+    # attempt due to a bad nickname or whatever. Then trying to post
+    # to the channel would fail badly, of course.
+    @fifo_thread = Thread.new do
+      File.mkfifo(@fifo.to_s) # Method from the mkfifo gem # TODO: Newer version should work with Pathname
+
+      File.open(@fifo, "r+") do |fifo| # Needs r+ for keeping the FIFO open after a process has completed writing (wait for other processes!)
+        @logger.info("Opened FIFO (named pipe) at #{@fifo}.")
+        fifo.each_line do |line|
+          msg = line.strip # Remove any unnecessary whitespace
+          @logger.debug("Got message from the FIFO: #{msg}")
+          CHANNELS.each{|channel|message(channel, msg)}
+        end # each_line
+      end # open
+    end # Thread.new
+  end # on :nick
 
   on :join do |who, channel|
     @logger.info("Successfully /join-ed #{channel}.")
@@ -179,6 +211,7 @@ Short  Long  Description
   end
 
   if debug_mode
+    Thread.abort_on_exception = true
     bot.logger = Logger.new($stdout)
     bot.logger.level = Logger::DEBUG
     bot.run!

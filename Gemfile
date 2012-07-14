@@ -18,3 +18,4 @@
 
 source "https://rubygems.org"
 gem "em-irc"
+gem "mkfifo"
