@@ -150,10 +150,30 @@ if __FILE__ == $0
     when "-d", "--debug" then
       debug_mode = true
     when "-v", "--version" then
-      puts ORRBOT_VERSION
+      puts <<-EOM
+This is OpenRubyRMBot, version #{ORRBOT_VERSION}.
+OpenRubyRMBot  Copyright (C) 2012  The OpenRubyRMK Team
+This program comes with ABSOLUTELY NO WARRANTY; for details see
+the file COPYING in the source.
+This is free software, and you are welcome to redistribute it
+under certain conditions; see the file COPYING for details.
+      EOM
+      exit
+    when "-h", "--help" then
+      puts <<-HELP
+OpenRubyRMBot, the IRC bot from the OpenRubyRMK team.
+
+Options:
+
+Short  Long  Description
+-d     --debug    Sets the logging level to DEBUG, logs to standard
+                  output and does not fork.
+-h    --help      Display this message.
+-v     --version  Display the version number and exit.
+      HELP
       exit
     else
-      puts "Unknown argument #{arg}."
+      puts "Unknown argument #{arg}. Try -h for help."
       exit 1
     end
   end
