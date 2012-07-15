@@ -67,6 +67,7 @@ bot = EventMachine::IRC::Client.new do
   @pid_file = Pathname.new(PID_FILE % INSTALL_DIR.to_s)
   @fifo = Pathname.new(FIFO_PATH % INSTALL_DIR.to_s)
 
+  # Connected to the IRC network
   on :connect do
     # Notify the user that we are starting
     @logger.info("OpenRubyRMBot version #{ORRBOT_VERSION} starting up.")
@@ -87,6 +88,7 @@ bot = EventMachine::IRC::Client.new do
     nick NICKNAME
   end
 
+  # Disconnected from the IRC network
   on :disconnect do
     # Kill the FIFO thread and remove the named pipe
     @fifo_thread.kill
@@ -98,6 +100,7 @@ bot = EventMachine::IRC::Client.new do
     @logger.debug("Deleted PID file.")
   end
 
+  # Nickname granted by the network
   on :nick do
     @logger.info("Nickname #{NICKNAME} granted by the network.")
     CHANNELS.each{|channel| join(channel)}
@@ -122,11 +125,16 @@ bot = EventMachine::IRC::Client.new do
     end # Thread.new
   end # on :nick
 
+  # Someone joined a channel we’re monitoring
   on :join do |who, channel|
-    @logger.info("Successfully /join-ed #{channel}.")
-    message(channel, "#{NICKNAME} is back again!")
+    if who.downcase == NICKNAME.downcase
+      @logger.info("Successfully /join-ed #{channel}.")
+      message(channel, "#{NICKNAME} is back again!")
+    end
   end
 
+  # Someone posted a message to a channel we’re monitoring or a PM
+  # to us.
   on :message do |from, to, msg| # `to' maybe the #channel or a nick
     if to.downcase == NICKNAME.downcase # For lazy guys
       process_private_message(from, to, msg)
