@@ -144,6 +144,9 @@ bot = EventMachine::IRC::Client.new do
   end
 
   def process_public_message(from, channel, msg)
+    # Don’t process our own messages (danger of endless loop)
+    return if from.downcase == NICKNAME.downcase
+
     case msg
     when /^#{NICKNAME}[:,]/
       # Assuming the bot is named ORRBot, the default:
