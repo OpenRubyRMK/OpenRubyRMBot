@@ -38,15 +38,6 @@ cinch = Cinch::Bot.new do
     bot.quit
   end
 
-  on :message, /^echo (.*)/ do |msg|
-    msg.reply(">> #{msg.message}")
-  end
-
-  on :message, /hello/ do |msg|
-    msg.reply("!#{msg.message}!")
-    msg.reply("Hello, #{msg.user.nick}!")
-  end
-
 end
 
 cinch.start

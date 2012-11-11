@@ -34,6 +34,7 @@ class CinchPlugins::Fifo
 
   def shutdown(msg)
     File.delete(config[:fifo_path])
+    bot.log("Deleted FIFO #{config[:fifo_path]}.", :info)
   end
 
 end
