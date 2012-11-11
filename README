@@ -12,16 +12,7 @@ it on other platforms.
 OpenRubyRMBot features both a readable and well-documented
 configuration file and a plugin system allowing you to add/remove
 functionality you (don’t) desire. Under the hood it uses the
-{em-irc lirbrary}[https://github.com/jch/em-irc], which is based on
-EventMachine[http://rubyeventmachine.com] and therefore should scale
-well.
-
-It is able to both parse all public messages posted into a channel and
-to process private messages directly targetted at the bot. The former
-can cause a so-called "trigger" to be activated, making the bot taking
-action and posting something (or doing something else you define), the
-latter are understand as "commands" that are intended to make the bot
-acting in some way.
+{Cinch lirbrary}[https://github.com/cinchrb/cinch].
 
 == Installation
 
@@ -33,24 +24,9 @@ TODO
 * {Issue tracker}[http://devel.pegasus-alpha.eu/projects/openrubyrmbot/issues]
 * {Forums}[http://devel.pegasus-alpha.eu/projects/openrubyrmk/boards]
 
-== Usage
-
-To configure, edit the first section in the script:
-
-  $ $EDITOR open_ruby_rmbot
-
-To start in production mode:
-
-  $ rbx -X19 open_ruby_rmbot
-
-To start in debug mode (doesn’t fork, logs to standard output
-with log level DEBUG):
-
-  $ rbx -X19 open_ruby_rmbot -d
-
 == License
 
-OpenRubyRMBot is an IRC bot for project interation.
+OpenRubyRMBot is an IRC bot for project interaction.
 Copyright © 2012 The OpenRubyRMK Team
 
 See the file AUTHORS for an exhaustive list of people who have
