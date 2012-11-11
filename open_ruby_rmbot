@@ -1,239 +1,52 @@
-#!/usr/bin/env rbx -X19
+#!/usr/bin/env ruby
 # -*- mode: ruby; coding: utf-8 -*-
-require "logger"
-require "pathname"
 require "mkfifo"
-require "em-irc"
-########################################
-# Configuration
-########################################
+require "cinch"
 
-# Where to log to. %s is replaced by the directory
-# this file resides in.
-LOG_FILE  = "%s/tmp/orrbot.log"
+module CinchPlugins
+end
 
-# Logging verbosity. One of the following, listed
-# in ascending order:
-# Logger::DEBUG, Logger::INFO, Logger::WARN,
-# Logger::ERROR, Logger::FATAL
-LOG_LEVEL = Logger::DEBUG
+Dir["plugins/*.rb"].each{|f| require_relative(f)}
 
-# Where to write the PID to. %s is replaced by the
-# directory this file resides in.
-PID_FILE = "%s/tmp/orrbot.pid"
+cinch = Cinch::Bot.new do
 
-# The IRC network to connect to.
-NETWORK = "irc.freenode.net"
+  configure do |config|
+    config.server     = "irc.freenode.net"
+    config.port       = 6697
+    config.ssl.use    = true
+    config.ssl.verify = false
 
-# The port on the `NETWORK' server to connect to.
-NETWORK_PORT = 6667
+    config.channels = ["#OpenRubyRMKBotTest"]
+    config.nick     = "OpenRubyRMBot"
+    config.user     = "orrbot"
+    config.realname = "OpenRubyRMBot"
 
-# The nickname the bot connects to the network
-# under.
-NICKNAME = "ORRBot"
+    config.plugins.options[CinchPlugins::Fifo] = {
+      :fifo_path => "/tmp/myfifo"
+    }
 
-# List of channels to join after connecting to
-# the IRC network.
-CHANNELS = %w[#TheORRBotTestchannel]
-
-# URL used for the ticket trigger #num. %d is replaced
-# by the ticket number `num'.
-TICKET_URL = "http://devel.pegasus-alpha.eu/issues/%d"
-
-# Named pipe you can write everything to that
-# you want to show up in the IRC channel(s) the bot has
-# joined to. %s is replaced by the directory this file
-# resides in.
-FIFO_PATH = "%s/tmp/data"
-
-########################################
-# Start of code
-########################################
-
-# The version number.
-ORRBOT_VERSION = "0.0.1"
-
-# The directory this file resides in.
-INSTALL_DIR = Pathname.new(__FILE__).dirname.expand_path
-
-# The help message (see bottom of this file)
-HELP_MESSAGE = DATA.read
-
-bot = EventMachine::IRC::Client.new do
-  host NETWORK
-  port NETWORK_PORT
-
-  @logger = Logger.new(LOG_FILE % INSTALL_DIR.to_s, LOG_LEVEL)
-  @pid_file = Pathname.new(PID_FILE % INSTALL_DIR.to_s)
-  @fifo = Pathname.new(FIFO_PATH % INSTALL_DIR.to_s)
-
-  # Connected to the IRC network
-  on :connect do
-    # Notify the user that we are starting
-    @logger.info("OpenRubyRMBot version #{ORRBOT_VERSION} starting up.")
-    @logger.info("Copyright (C) 2012 The OpenRubyRMK team")
-    @logger.info("This is free software, as defined by the GNU GPL.")
-    @logger.info("See the file COPYING in the sources for more information.")
-
-    # Write the PID file
-    if @pid_file.file?
-      @logger.fatal("PID file #@pid_file already exists. Please delete it if it is a stale file.")
-      exit 2
-    else
-      @pid_file.open("w"){|f| f.write($$)}
-      @logger.info("PID written to #@pid_file")
-    end
-
-    @logger.info("Connected to #{NETWORK}.")
-    nick NICKNAME
+    config.plugins.plugins = CinchPlugins.constants.map{|sym| CinchPlugins.const_get(sym)}
   end
 
-  # Disconnected from the IRC network
-  on :disconnect do
-    # Kill the FIFO thread and remove the named pipe
-    @fifo_thread.kill
-    File.delete(@fifo)
-    @logger.debug("Deleted FIFO.")
-
-    # Delete the PID file
-    @pid_file.delete if @pid_file.file?
-    @logger.debug("Deleted PID file.")
+  trap "SIGINT" do
+    bot.log("Cought SIGINT, quitting...", :info)
+    bot.quit
   end
 
-  # Nickname granted by the network
-  on :nick do
-    @logger.info("Nickname #{NICKNAME} granted by the network.")
-    CHANNELS.each{|channel| join(channel)}
-
-    # Create a new thread for monitoring the FIFO. Everything inputted
-    # there is directly mirrored to the IRC channel(s). This can’t be
-    # done on :connect, as the network probably rejects the connection
-    # attempt due to a bad nickname or whatever. Then trying to post
-    # to the channel would fail badly, of course.
-    @fifo_thread = Thread.new do
-      File.mkfifo(@fifo.to_s) # Method from the mkfifo gem # TODO: Newer version should work with Pathname
-      File.chmod(0666, @fifo)
-
-      File.open(@fifo, "r+") do |fifo| # Needs r+ for keeping the FIFO open after a process has completed writing (wait for other processes!)
-        @logger.info("Opened FIFO (named pipe) at #{@fifo}.")
-        fifo.each_line do |line|
-          msg = line.strip # Remove any unnecessary whitespace
-          @logger.debug("Got message from the FIFO: #{msg}")
-          CHANNELS.each{|channel|message(channel, msg)}
-        end # each_line
-      end # open
-    end # Thread.new
-  end # on :nick
-
-  # Someone joined a channel we’re monitoring
-  on :join do |who, channel|
-    if who.downcase == NICKNAME.downcase
-      @logger.info("Successfully /join-ed #{channel}.")
-      message(channel, "#{NICKNAME} is back again!")
-    end
+  trap "SIGTERM" do
+    bot.log("Cought SIGTERM, quitting...", :info)
+    bot.quit
   end
 
-  # Someone posted a message to a channel we’re monitoring or a PM
-  # to us.
-  on :message do |from, to, msg| # `to' maybe the #channel or a nick
-    if to.downcase == NICKNAME.downcase # For lazy guys
-      process_private_message(from, to, msg)
-    else
-      process_public_message(from, to, msg)
-    end
+  on :message, /^echo (.*)/ do |msg|
+    msg.reply(">> #{msg.message}")
   end
 
-  def process_public_message(from, channel, msg)
-    # Don’t process our own messages (danger of endless loop)
-    return if from.downcase == NICKNAME.downcase
-
-    case msg
-    when /^#{NICKNAME}[:,]/
-      # Assuming the bot is named ORRBot, the default:
-      # "ORRBot: Hey you!"
-      message(channel, "I'm just a bot, don't try to talk to me!")
-    when /#(\d+)/
-      # "This is discussed in #43"
-      message(channel, "Ticket ##$1 is at #{TICKET_URL % $1.to_i}")
-    end
-  end
-
-  def process_private_message(from, me, msg)
-    @logger.info("PM from #{from}: #{msg}")
-    case msg
-    when /^help$/i
-      multiline_message(from, HELP_MESSAGE)
-    else
-      multiline_message(from, HELP_MESSAGE)
-    end
-    message(from, "I didn't got this, sorry: #{msg}")
-  end
-
-  #Splits up a message line by line and sends it to the
-  #IRC server with a short delay.
-  #==Parameters
-  #[to]  To whom to send the message.
-  #[msg] The actual message.
-  def multiline_message(to, msg)
-    callback = lambda do
-      msg.each_line do |line|
-        message(to, line.strip)
-        sleep 1 # Network refuses otherwise
-      end
-    end
-    # Defer the execution to allow the bot to be responsive
-    # while sending the message.
-    EventMachine.defer(callback)
+  on :message, /hello/ do |msg|
+    msg.reply("!#{msg.message}!")
+    msg.reply("Hello, #{msg.user.nick}!")
   end
 
 end
 
-if __FILE__ == $0
-  while arg = ARGV.shift
-    case arg
-    when "-d", "--debug" then
-      debug_mode = true
-    when "-v", "--version" then
-      puts <<-EOM
-This is OpenRubyRMBot, version #{ORRBOT_VERSION}.
-OpenRubyRMBot  Copyright (C) 2012  The OpenRubyRMK Team
-This program comes with ABSOLUTELY NO WARRANTY; for details see
-the file COPYING in the source.
-This is free software, and you are welcome to redistribute it
-under certain conditions; see the file COPYING for details.
-      EOM
-      exit
-    when "-h", "--help" then
-      puts <<-HELP
-OpenRubyRMBot, the IRC bot from the OpenRubyRMK team.
-
-Options:
-
-Short  Long  Description
--d     --debug    Sets the logging level to DEBUG, logs to standard
-                  output and does not fork.
--h    --help      Display this message.
--v     --version  Display the version number and exit.
-      HELP
-      exit
-    else
-      puts "Unknown argument #{arg}. Try -h for help."
-      exit 1
-    end
-  end
-
-  if debug_mode
-    Thread.abort_on_exception = true
-    bot.logger = Logger.new($stdout)
-    bot.logger.level = Logger::DEBUG
-    bot.run!
-  else
-    fork{bot.run!}
-  end
-end
-
-__END__
-Hi, I'm ORRBot, the bot for the OpenRubyRMK channel!
-Nice to meet you!
-For more information on me, visit:
-http://devel.pegasus-alpha.eu/projects/openrubyrmk/wiki/ORRBot
+cinch.start

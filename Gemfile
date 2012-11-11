@@ -17,5 +17,5 @@
 # along with OpenRubyRMBot.  If not, see <http://www.gnu.org/licenses/>.
 
 source "https://rubygems.org"
-gem "em-irc"
+gem "cinch"
 gem "mkfifo"
