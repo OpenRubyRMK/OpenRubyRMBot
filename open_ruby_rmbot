@@ -1,5 +1,14 @@
 #!/usr/bin/env ruby
 # -*- mode: ruby; coding: utf-8 -*-
+# OpenRubyRMBot, the nice and friendly robot hanging around
+# in #OpenRubyRMK on irc.freenode.net. This is a Cinch
+# robot (https://github.com/cinchrb/cinch) and if you
+# want to customize it, you probably want to change the
+# #configure section below. Also note all files inside
+# plugins/ are automatically loaded and all constants
+# defined below the CinchPlugins module will automatically
+# be registered as plugins to the robot.
+
 require "mkfifo"
 require "cinch"
 
