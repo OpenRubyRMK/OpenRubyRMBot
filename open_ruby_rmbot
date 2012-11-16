@@ -12,7 +12,11 @@
 require "mkfifo"
 require "cinch"
 
-Dir["plugins/*.rb"].each{|f| require_relative(f)}
+require_relative "plugins/http_server"
+require_relative "plugins/fifo"
+require_relative "plugins/link_info"
+require_relative "plugins/pega_issues"
+require_relative "plugins/github_commits"
 
 cinch = Cinch::Bot.new do
 
