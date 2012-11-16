@@ -41,10 +41,11 @@ cinch = Cinch::Bot.new do
       :port => 46664
     }
 
-    config.plugins.plugins = [Cinch::PegaIssues,
+    config.plugins.plugins = [Cinch::HttpServer,
+                              Cinch::LinkInfo,
                               Cinch::Fifo,
-                              Cinch::HttpServer,
-                              Cinch::GithubCommits]
+                              Cinch::GithubCommits,
+                              Cinch::PegaIssues]
   end
 
   trap "SIGINT" do
