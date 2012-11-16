@@ -17,7 +17,9 @@
 # along with OpenRubyRMBot.  If not, see <http://www.gnu.org/licenses/>.
 
 source "https://rubygems.org"
+
 gem "sinatra"
 gem "thin"
 gem "cinch"
 gem "mkfifo"
+gem "nokogiri"
