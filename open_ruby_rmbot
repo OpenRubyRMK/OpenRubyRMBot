@@ -18,7 +18,8 @@ require_relative "plugins/link_info"
 require_relative "plugins/pega_issues"
 require_relative "plugins/github_commits"
 
-PID_FILE = "/var/run/orrbot.pid"
+DIR      = File.dirname(File.expand_path(__FILE__))
+PID_FILE = "#{DIR}/tmp/orrbot.pid"
 
 cinch = Cinch::Bot.new do
 
