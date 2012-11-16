@@ -18,6 +18,8 @@ require_relative "plugins/link_info"
 require_relative "plugins/pega_issues"
 require_relative "plugins/github_commits"
 
+PID_FILE = "/var/run/orrbot.pid"
+
 cinch = Cinch::Bot.new do
 
   configure do |config|
@@ -63,5 +65,10 @@ cinch = Cinch::Bot.new do
   end
 
 end
+
+# PID file handling
+abort "PID file #{PID_FILE} already exists. Delete it if you know no other orrbot is running." if File.file?(PID_FILE)
+File.open(PID_FILE, "w"){|f| f.write($$)}
+at_exit{File.delete(PID_FILE)}
 
 cinch.start
