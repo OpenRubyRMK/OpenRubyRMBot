@@ -31,11 +31,20 @@ cinch = Cinch::Bot.new do
       :base_url => "https://devel.pegasus-alpha.eu/issues"
     end
 
-    config.plugins.options[CinchPlugins::Fifo] = {
-      :fifo_path => "/tmp/myfifo"
+    config.plugins.options[Cinch::Fifo] = {
+      :path => "/tmp/myfifo",
+      :mode => 0666
     }
 
-    config.plugins.plugins = CinchPlugins.constants.map{|sym| CinchPlugins.const_get(sym)}  end
+    config.plugins.options[Cinch::HttpServer] = {
+      :host => "0.0.0.0",
+      :port => 46664
+    }
+
+    config.plugins.plugins = [Cinch::PegaIssues,
+                              Cinch::Fifo,
+                              Cinch::HttpServer,
+                              Cinch::GithubCommits]
 
   trap "SIGINT" do
     bot.log("Cought SIGINT, quitting...", :info)
