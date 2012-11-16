@@ -12,9 +12,6 @@
 require "mkfifo"
 require "cinch"
 
-module CinchPlugins
-end
-
 Dir["plugins/*.rb"].each{|f| require_relative(f)}
 
 cinch = Cinch::Bot.new do
@@ -30,12 +27,15 @@ cinch = Cinch::Bot.new do
     config.user     = "orrbot"
     config.realname = "OpenRubyRMBot"
 
+    config.plugins.options[Cinch::PegaIssues] = {
+      :base_url => "https://devel.pegasus-alpha.eu/issues"
+    end
+
     config.plugins.options[CinchPlugins::Fifo] = {
       :fifo_path => "/tmp/myfifo"
     }
 
-    config.plugins.plugins = CinchPlugins.constants.map{|sym| CinchPlugins.const_get(sym)}
-  end
+    config.plugins.plugins = CinchPlugins.constants.map{|sym| CinchPlugins.const_get(sym)}  end
 
   trap "SIGINT" do
     bot.log("Cought SIGINT, quitting...", :info)
