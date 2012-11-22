@@ -13,13 +13,13 @@ require "mkfifo"
 require "cinch"
 
 require_relative "plugins/http_server"
+require_relative "plugins/pid_file"
 require_relative "plugins/fifo"
 require_relative "plugins/link_info"
 require_relative "plugins/pega_issues"
 require_relative "plugins/github_commits"
 
 DIR      = File.dirname(File.expand_path(__FILE__))
-PID_FILE = "#{DIR}/tmp/orrbot.pid"
 
 cinch = Cinch::Bot.new do
 
@@ -38,6 +38,11 @@ cinch = Cinch::Bot.new do
       :base_url => "https://devel.pegasus-alpha.eu/issues"
     }
 
+    config.plugins.options[Cinch::PidFile] = {
+      :path   => "#{DIR}/tmp/orrbot.pid",
+      :strict => true
+    }
+
     config.plugins.options[Cinch::Fifo] = {
       :path => "#{DIR}/tmp/myfifo",
       :mode => 0666
@@ -45,10 +50,12 @@ cinch = Cinch::Bot.new do
 
     config.plugins.options[Cinch::HttpServer] = {
       :host => "0.0.0.0",
-      :port => 46664
+      :port => 46664,
+      :logfile => "/var/log/orrbot/httpserver.log"
     }
 
-    config.plugins.plugins = [Cinch::HttpServer,
+    config.plugins.plugins = [Cinch::PidFile,
+                              Cinch::HttpServer,
                               Cinch::LinkInfo,
                               Cinch::Fifo,
                               Cinch::GithubCommits,
@@ -65,11 +72,10 @@ cinch = Cinch::Bot.new do
     bot.quit
   end
 
-end
+  file = File.open("/var/log/orrbot/bot.log", "a")
+  file.sync = true
+  loggers.push(Cinch::Logger::FormattedLogger.new(file))
 
-# PID file handling
-abort "PID file #{PID_FILE} already exists. Delete it if you know no other orrbot is running." if File.file?(PID_FILE)
-File.open(PID_FILE, "w"){|f| f.write($$)}
-at_exit{File.delete(PID_FILE)}
+end
 
 cinch.start
