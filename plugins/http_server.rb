@@ -38,14 +38,25 @@
 #   config.plugins.options[Cinch::HttpServer] = {
 #     :host => "0.0.0.0",
 #     :port => 1234
+#     :logfile => "/var/log/cinch-http-server.log" # OPTIONAL
 #   }
 #
-# [host]
+# [host ("localhost")]
 #   The host to bind to. "0.0.0.0" will make your server
 #   publicely available, "localhost" restricts to
 #   connections from the local machine.
-# [port]
+# [port (1234)]
 #   The port you want the HTTP server to listen at.
+# [logfile (:cinch)]
+#   If you don’t set this (or set it to the symbol :cinch),
+#   the HTTP server will log all requests received onto
+#   Cinch’s standard logging facility, which in turn forwards
+#   to all loggers registered with the bot instance (see
+#   Cinch::Bot#loggers). If you set this to a string, it will
+#   be treated as a filename of a log file to open solely
+#   for the HTTP requests; the file will be in Apache common
+#   log format and nothing else beside the HTTP requests will
+#   be logged there.
 #
 # == Example
 #   class SayHello
@@ -75,7 +86,8 @@
 # 1. You cannot call methods defined inside *your* class.
 # 2. To interact with Cinch, call the CinchHttpServer#bot helper
 #    method, which _is_ available and allows you to send stuff
-#    to channels and the like.
+#    to channels and the like. It returns the Cinch::Bot instance
+#    currently running.
 # 3. The return value of the block determines what is sent back
 #    to the requesting client. You shouldn’t use Cinch as a fully-
 #    fleged HTTP server, so in most cases you just want to answer
@@ -83,6 +95,21 @@
 #    If you want more, have a look at Sinatra’s excellent README:
 #    http://www.sinatrarb.com/intro#Return%20Values
 #
+# == A note about logging
+# Each received HTTP request will be logged via Cinch’s +loggers+
+# mechanism by default, no separate log file is created. To get
+# a log file, you have two possibilities: The first one is to
+# just add a permanent logger to Cinch’s logging mechanism:
+#
+#   file = open("/var/log/cinch.log", "a")
+#   file.sync = true
+#   yourbot.loggers.push(Cinch::Logger::FormattedLogger.new(file)
+#
+# /var/log/cinch.log will contain all of Cinch’s log messages, those
+# from the HTTP server included. If you just want to persist the HTTP
+# requests received (or want the HTTP requests in a separate log file)
+# you can set the configuration option :logfile to an apropriate
+# log file path. See the _Configuration_ section above for an example.
 # == Author
 # Marvin Gülker (Quintus)
 #
@@ -110,11 +137,31 @@ require "thin"
 # HTTP Server plugin for Cinch.
 class Cinch::HttpServer
 
+  # Logging adapter between Rack and Cinch. You can pass an instance
+  # of this class into Rack::CommonLogger.new and it will make the
+  # Rack logger log onto all of Cinch’s registered loggers (at info
+  # level).
+  class CinchLogging
+
+    # Create a new instance of this class. Pass in the
+    # Cinch::Bot instance to log to.
+    def initialize(bot)
+      @bot = bot
+    end
+
+    # This method is called by Rack::CommonLogger when it wants
+    # to write out a line. It delegates to the +info+ method of
+    # the wrapped bot’s +loggers+ attribute.
+    def write(str)
+      @bot.loggers.info(str)
+    end
+
+  end
+
   # Micro Sinatra application that is extended by
   # other Cinch plugins by means of including the
   # Verbs module and defining routes.
   class CinchHttpServer < Sinatra::Base
-    enable :logging
 
     # When starting the server, we set this to the currently
     # running Cinch::Bot instance.
@@ -123,7 +170,8 @@ class Cinch::HttpServer
     end
 
     # The currently running Cinch::Bot instance or +nil+ if
-    # it’s not available yet.
+    # it’s not available yet (i.e. the bot hasn’t been started
+    # yet).
     def self.bot
       @bot
     end
@@ -150,15 +198,38 @@ class Cinch::HttpServer
   listen_to :disconnect, :method => :stop_http_server
 
   def start_http_server(msg)
-    host = config[:host] || "localhost"
-    port = config[:port] || 1234
+    host    = config[:host]    || "localhost"
+    port    = config[:port]    || 1234
+    logfile = config[:logfile] || :cinch
 
     bot.info "Starting HTTP server on #{host} port #{port}"
+
+    # Set up thin with our Rack endpoint
     @server = Thin::Server.new(host,
                                port,
                                CinchHttpServer,
                                signals: false)
+
+    # If requested, iject our special rack-to-cinch logging
+    # adapter that makes Rack::CommonLogger log to Cinch’s
+    # registered loggers. We cannot add this middleware
+    # earlier, because we don’t have the requried Cinch::Bot
+    # instance ready prior to calling `start_http_server'.
+    if logfile == :cinch
+      @server.app.use(Rack::CommonLogger, CinchLogging.new(bot))
+    else
+      # Otherwise, just create a normal CommonLogger to store
+      # our HTTP request log in.
+      file = File.open(logfile.to_str, "a")
+      file.sync = true # Logs should never be buffered
+      @server.app.use(Rack::CommonLogger, file)
+    end
+
+    # Make the Cinch::Bot instance available inside the HTTP
+    # handlers.
     @server.app.bot = bot
+
+    # Start the HTTP server!
     @server.start
   end
 
