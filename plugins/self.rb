@@ -14,9 +14,9 @@
 # == License
 # This module’s code is heavily inspired by the lambdas example
 # in Cinch’s example directory, so I don’t want to relicense code
-# from the Cinch project under the GPL. This isn’t nice, so
+# from the Cinch project under the LGPL. This isn’t nice, so
 # in contrast to most of the other software in this repo, this
-# module isn’t GPL-licensed but is licensed under the 2-clause BSDL.
+# module isn’t LGPL-licensed but is licensed under the 2-clause BSDL.
 #
 # Copyright © Marvin Gülker
 # All rights reserved.
@@ -74,6 +74,14 @@ module Cinch::Self
   def recognize(regexp, hsh = {})
     hsh[:prefix] = lambda{|msg| Regexp.compile("^#{msg.bot.nick}:\s*")}
     match(regexp, hsh)
+  end
+
+  # Like ::match, but listens for both private and public messages. For public channel
+  # messages, the prefix is set to the bot’s current nickname, for private messages,
+  # the prefix is disabled completely. All other options are the same as for +match+.
+  def listen_for(regexp, hsh = {})
+    match(regexp, hsh.merge(:prefix => lambda{|msg| Regexp.compile("^#{msg.bot.nick}:\s*")}, :react_on => :channel))
+    match(regexp, hsh.merge(:use_prefix => false, :react_on => :private))
   end
 
 end

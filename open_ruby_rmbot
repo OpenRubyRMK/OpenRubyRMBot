@@ -12,6 +12,7 @@
 require "mkfifo"
 require "cinch"
 
+require_relative "plugins/self"
 require_relative "plugins/echo"
 require_relative "plugins/http_server"
 require_relative "plugins/pid_file"
@@ -19,6 +20,9 @@ require_relative "plugins/fifo"
 require_relative "plugins/link_info"
 require_relative "plugins/pega_issues"
 require_relative "plugins/github_commits"
+require_relative "plugins/help"
+require_relative "plugins/memo"
+require_relative "plugins/history"
 
 DIR = File.dirname(File.expand_path(__FILE__))
 
@@ -55,12 +59,28 @@ cinch = Cinch::Bot.new do
       :logfile => "#{DIR}/tmp/httpserver.log"
     }
 
+    config.plugins.options[Cinch::Help] = {
+      :intro => "%s at your service. Commands starting with /msg are meant to be sent privately, <> indicate mandatory, [] optional parameters."
+    }
+
+    config.plugins.options[Cinch::History] = {
+      :mode => :max_age,
+      :max_age => 5
+    }
+
+    config.plugins.options[Cinch::Memo] = {
+      :max_lifetime => 48
+    }
+
     config.plugins.plugins = [Cinch::PidFile,
                               Cinch::Echo,
                               Cinch::HttpServer,
                               Cinch::LinkInfo,
                               Cinch::Fifo,
                               Cinch::GithubCommits,
+                              Cinch::Help,
+                              Cinch::History,
+                              Cinch::Memo,
                               Cinch::PegaIssues]
   end
 
