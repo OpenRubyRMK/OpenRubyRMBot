@@ -39,6 +39,9 @@ cinch = Cinch::Bot.new do
     config.user     = "orrbot"
     config.realname = "OpenRubyRMBot"
 
+    # Default prefix is the bot’s name
+    config.plugins.prefix = lambda{|msg| Regexp.compile("^#{Regexp.escape(msg.bot.nick)}:?\s*")}
+
     config.plugins.options[Cinch::PegaIssues] = {
       :base_url => "https://devel.pegasus-alpha.eu/issues"
     }
