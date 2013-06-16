@@ -12,7 +12,6 @@
 require "mkfifo"
 require "cinch"
 
-require_relative "plugins/self"
 require_relative "plugins/echo"
 require_relative "plugins/http_server"
 require_relative "plugins/pid_file"
@@ -23,6 +22,7 @@ require_relative "plugins/github_commits"
 require_relative "plugins/help"
 require_relative "plugins/memo"
 require_relative "plugins/history"
+require_relative "plugins/quit"
 
 DIR = File.dirname(File.expand_path(__FILE__))
 
@@ -35,9 +35,12 @@ cinch = Cinch::Bot.new do
     config.ssl.verify = false
 
     config.channels = ["#OpenRubyRMK"]
-    config.nick     = "OpenRubyRMBot"
+    config.nick     = "ORRBot"
     config.user     = "orrbot"
     config.realname = "OpenRubyRMBot"
+
+    # Default prefix is the bot’s name
+    config.plugins.prefix = lambda{|msg| Regexp.compile("^#{Regexp.escape(msg.bot.nick)}:?\s*")}
 
     config.plugins.options[Cinch::PegaIssues] = {
       :base_url => "https://devel.pegasus-alpha.eu/issues"
@@ -72,6 +75,10 @@ cinch = Cinch::Bot.new do
       :max_lifetime => 48
     }
 
+    config.plugins.options[Cinch::Quit] = {
+      :op => true
+    }
+
     config.plugins.plugins = [Cinch::PidFile,
                               Cinch::Echo,
                               Cinch::HttpServer,
@@ -81,6 +88,7 @@ cinch = Cinch::Bot.new do
                               Cinch::Help,
                               Cinch::History,
                               Cinch::Memo,
+                              Cinch::Quit,
                               Cinch::PegaIssues]
   end
 
